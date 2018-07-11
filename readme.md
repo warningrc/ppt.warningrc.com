@@ -12,7 +12,7 @@ usemathjax: yes
 
 ------
 
-几个链接：[我的博客](http://blog.warningrc.com) [Spock参考文档](https://book.warningrc.com/spock/)
+几个链接：[我的博客](https://www.warningrc.com) [Spock参考文档](https://book.warningrc.com/spock/)
 
 ------
 
