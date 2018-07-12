@@ -1,7 +1,7 @@
 title: RESTful装X指南
 speaker: warning
-url: https://github.com/ksky521/nodePPT
 transition: kontext
+files: /js/ga.js
 
 [slide style="background-image:url('/img/bg1.png')" data-transition="zoomout"]
 
@@ -53,8 +53,8 @@ URN是URI的一种,用特定命名空间的名字标识资源。使用URN可以�
     btih:(BitTorrent Info Hash)
     issn:(International Standard Serial Number,国际标准连续出版物编号)
 </code>
-</pre>	
-	
+</pre>
+
 [/magic]
 
 [slide  style="background-image:url('/img/bg1.png')"]
@@ -128,15 +128,15 @@ REST定义了应该如何正确地使用Web标准，例如HTTP和URI
 * 资源≠数据库记录 资源比数据库记录更加抽象
 
 <pre><code class="markdown">
-http://koolearn.com/users/1234
-http://koolearn.com/orders/2007/10/776654
-http://koolearn.com/products/4554
-http://koolearn.com/processes/salary-increase-234
+http://warningrc.com/users/1234
+http://warningrc.com/orders/2007/10/776654
+http://warningrc.com/products/4554
+http://warningrc.com/processes/salary-increase-234
 </code></pre>
 
 <pre><code class="markdown">
-http://koolearn.com/orders/2007/11
-http://koolearn.com/products?productline=kaoyan 
+http://warningrc.com/orders/2007/11
+http://warningrc.com/products?productline=kaoyan
 </code></pre>
 
 >使用URI标识所有值得标识的事物，特别是应用中提供的所有“高级”资源，无论这些资源代表单一数据项、数据项集合、虚拟亦或实际的对象还是计算结果等。
@@ -162,11 +162,11 @@ http://koolearn.com/products?productline=kaoyan
 #资源多重表述(json,html,xml等)
 
 <pre><code class="markdown">GET /users/1234 HTTP/1.1
-Host: koolearn.com 
+Host: warningrc.com
 Accept: application/vnd.koolearn.user+json</code></pre>
 
 <pre><code class="shell">GET /users/1234 HTTP/1.1
-Host: koolearn.com 
+Host: warningrc.com
 Accept: text/x-vcard</code></pre>
 
 >针对不同的需求提供资源多重表述
@@ -233,7 +233,7 @@ Accept: text/x-vcard</code></pre>
 #将所有事物链接在一起
 
 <pre><code class="xml">
-&lt;order self="http://example.com/orders/1234"&gt; 
+&lt;order self="http://example.com/orders/1234"&gt;
    &lt;amount>23&lt;/amount&gt;
    &lt;product ref="http://example.com/products/4554"&gt;
 		&lt;user ref="http://example.com/users/1234"/&gt;
@@ -282,14 +282,14 @@ Accept: text/x-vcard</code></pre>
 # 状态码
 
 * 2xx:成功
-	* 200  204  206  
+	* 200  204  206
 * 3xx:重定向
 	* 301  302  303  304  307
 * 4xx:客户端错误
-	* 400 401 403 404 
+	* 400 401 403 404
 * 5xx:服务器错误
 	* 500 503
-	
+
 [slide  style="background-image:url('/img/bg1.png')"]
 ----
 <iframe data-src="http://tool.oschina.net/commons?type=5" style="width: 1024px;height: 768px;" src="about:blank;"></iframe>
@@ -338,4 +338,3 @@ https://api.github.com/
 [slide  style="background-image:url('/img/bg1.png')"]
 
 # ***谢谢！***
-

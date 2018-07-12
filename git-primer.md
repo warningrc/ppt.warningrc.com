@@ -1,6 +1,7 @@
 title: git入门
 speaker: speaker
 transition: cards
+files: /js/ga.js
 
 [slide style="background-image:url('/img/bg1.png')"]
 

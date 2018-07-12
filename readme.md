@@ -3,6 +3,7 @@ speaker: Warning
 transition: zoomin
 theme: dark
 usemathjax: yes
+files: /js/ga.js
 [slide]
 ## 本站地址 : https://ppt.warningrc.com
 -------

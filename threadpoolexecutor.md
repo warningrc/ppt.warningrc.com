@@ -3,6 +3,7 @@ speaker: 王宁
 transition: zoomin
 theme: dark
 usemathjax: yes
+files: /js/ga.js
 
 
 [slide]
