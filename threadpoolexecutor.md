@@ -8,7 +8,7 @@ files: /js/ga.js
 
 [slide]
 
-![](http://p8ia113oq.bkt.clouddn.com/7ce4279e64f098736b53539e40a295c4.png)
+![](http://qiniu-markdown-images.warningrc.com/7ce4279e64f098736b53539e40a295c4.png)
 
 [slide data-transition="slide"]
 
@@ -38,7 +38,7 @@ files: /js/ga.js
 
 
 
-[slide data-transition="horizontal3d"  style="background-image:url('http://p8ia113oq.bkt.clouddn.com/58c83f909f3c3bdf029d7104fc3d1644.png')"]
+[slide data-transition="horizontal3d"  style="background-image:url('http://qiniu-markdown-images.warningrc.com/58c83f909f3c3bdf029d7104fc3d1644.png')"]
 
 
 # Runnable
@@ -117,7 +117,7 @@ public class FutureTask<V> implements RunnableFuture<V>{
 
 [slide data-transition="cover-circle"]
 
-![](http://p8ia113oq.bkt.clouddn.com/5e5a1ce7090805ed382c262517c5ba57.png)
+![](http://qiniu-markdown-images.warningrc.com/5e5a1ce7090805ed382c262517c5ba57.png)
 
 
 [slide ]
@@ -709,7 +709,7 @@ new ThreadPoolExecutor(corePoolSize, maxPoolSize, 300,TimeUnit.SECONDS,
 
 [slide data-transition="horizontal3d"]
 
-![](http://p8ia113oq.bkt.clouddn.com/4943d3441b70b535dac8818e1382cc63.png)
+![](http://qiniu-markdown-images.warningrc.com/4943d3441b70b535dac8818e1382cc63.png)
 
 
 
