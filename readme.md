@@ -10,6 +10,7 @@ files: /js/ga.js
 * [git入门](./git-primer.html)
 * [RESTful装X指南](./RESTful.html)
 * [线程池的使用和踩坑记录](./threadpoolexecutor.html)
+* [聊聊限流](./limiter.html)
 
 ------
 

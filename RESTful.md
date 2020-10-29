@@ -1,5 +1,5 @@
 title: RESTful装X指南
-speaker: warning
+speaker: Warning
 transition: kontext
 files: /js/ga.js
 

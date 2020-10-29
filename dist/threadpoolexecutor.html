@@ -1,0 +1,834 @@
+<!--
+    Powered By nodeppt - This is probably the best web presentation tool so far!
+    version: 1.4.5
+    site: https://github.com/ksky521/nodeppt
+    date: 
+-->
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Java线程池的使用和踩坑记录 - By 王宁</title>
+    <link rel="stylesheet" media="all" href="./css/nodeppt.css">
+    <link rel="stylesheet" media="only screen and (max-device-width: 480px)" href="./css/phone.css">
+    
+    <link rel="stylesheet" href="./js/highlight/styles/monokai_sublime.css">
+    <link rel="stylesheet" href="./css/font-awesome.css">
+    
+<link rel="stylesheet" href="./css/theme.dark.css">
+</head>
+<body>
+<div class="slides">
+    <slides id="container">
+        <slide class="slide"><section class="slide-wrapper"><article>
+<img src="http://qiniu-markdown-images.warningrc.com/7ce4279e64f098736b53539e40a295c4.png" alt="">
+
+</article></section></slide>
+<slide class="slide" data-transition="slide"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>线程池的使用和踩坑记录</h1>
+<h3>王宁</h3>
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article>
+<ul>
+<li>线程池用法</li>
+<li>线程池的应用<ul>
+<li>复杂业务场景(我的课堂、我的直播)</li>
+<li>异步更新缓存</li>
+<li>本地生产消费者模式</li>
+</ul>
+</li>
+<li>线上应用卡死的排查之路</li>
+</ul>
+
+</article></section></slide>
+<slide class="slide"><section class="slide-wrapper"><hgroup>
+<h1>线程池用法</h1>
+<ul class="bounceIn">
+<li><span style="font-size: 50px;color:green;"> ThreadPoolExecutor  </span></li>
+</ul>
+
+</hgroup><article>
+
+<p><br/></p>
+<ul class="bounceIn">
+<li><span style="font-size: 50px;"> ScheduledThreadPoolExecutor  </span></li>
+</ul>
+
+</article></section></slide>
+<slide class="slide fill" data-transition="horizontal3d"  style="background-image:url('http://qiniu-markdown-images.warningrc.com/58c83f909f3c3bdf029d7104fc3d1644.png')"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>Runnable</h1>
+<pre><code class="java">public interface Runnable {
+    /**
+     * When an object implementing interface &lt;code&gt;Runnable&lt;/code&gt; is used
+     * to create a thread, starting the thread causes the object&#39;s
+     * &lt;code&gt;run&lt;/code&gt; method to be called in that separately executing
+     * thread.
+     * &lt;p&gt;
+     * The general contract of the method &lt;code&gt;run&lt;/code&gt; is that it may
+     * take any action whatsoever.
+     *
+     * @see     java.lang.Thread#run()
+     */
+    public void run();
+}
+</code></pre>
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>Callable</h1>
+<pre><code class="java">public interface Callable&lt;V&gt; {
+    /**
+     * Computes a result, or throws an exception if unable to do so.
+     *
+     * @return computed result
+     * @throws Exception if unable to compute a result
+     */
+    V call() throws Exception;
+}
+</code></pre>
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>Future</h1>
+<pre><code class="java">public interface Future&lt;V&gt; {
+    /**Attempts to cancel execution of this task.*/
+    boolean cancel(boolean mayInterruptIfRunning);
+    /**
+     * Returns {@code true} if this task was cancelled before it completed normally.
+     */
+    boolean isCancelled();
+    /**Returns {@code true} if this task completed.*/
+    boolean isDone();
+    /**
+     * Waits if necessary for the computation to complete, and then
+     * retrieves its result.
+     */
+    V get() throws InterruptedException, ExecutionException;
+    V get(long timeout, TimeUnit unit)
+        throws InterruptedException, ExecutionException, TimeoutException;
+}
+
+public interface RunnableFuture&lt;V&gt; extends Runnable, Future&lt;V&gt; {
+    void run();
+}
+
+public class FutureTask&lt;V&gt; implements RunnableFuture&lt;V&gt;{
+  //....
+}
+</code></pre>
+
+</article></section></slide>
+<slide class="slide"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>ThreadPoolExecutor</h1>
+
+</article></section></slide>
+<slide class="slide" data-transition="cover-circle"><section class="slide-wrapper"><article>
+<img src="http://qiniu-markdown-images.warningrc.com/5e5a1ce7090805ed382c262517c5ba57.png" alt="">
+
+</article></section></slide>
+<slide class="slide"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>构造函数</h1>
+<pre><code class="java">public ThreadPoolExecutor(int corePoolSize,int maximumPoolSize,long keepAliveTime,
+      TimeUnit unit,BlockingQueue&lt;Runnable&gt; workQueue,ThreadFactory threadFactory,
+                              RejectedExecutionHandler handler)
+</code></pre>
+
+</article></section></slide>
+<slide class="slide"><section class="slide-wrapper"><article class="bounceIn">
+
+<h2>corePoolSize</h2>
+<blockquote>
+<p>核心线程数。当提交一个任务时，线程池会新建一个线程来执行任务，直到当前线程数等于corePoolSize。</p>
+</blockquote>
+<h2>maximumPoolSize</h2>
+<blockquote>
+<p>线程池中允许的最大线程数。线程池的阻塞队列满了之后，继续提交任务，如果当前的线程数小于maximumPoolSize，则会新建线程来执行任务。</p>
+</blockquote>
+<h2>keepAliveTime</h2>
+<blockquote>
+<p>线程空闲的时间。线程的创建和销毁是需要代价的。线程执行完任务后不会立即销毁，而是继续存活一段时间。</p>
+</blockquote>
+<h2>threadFactory</h2>
+<blockquote>
+<p>创建线程的工厂</p>
+</blockquote>
+
+</article></section></slide>
+<slide class="slide"><section class="slide-wrapper"><article class="moveIn">
+
+<h2>BlockingQueue<Runnable> workQueue</h2>
+<blockquote>
+<p>用来保存等待执行的任务的阻塞队列</p>
+</blockquote>
+<ul class="fadeIn">
+<li>ArrayBlockingQueue</li>
+<li>LinkedBlockingQueue</li>
+<li>SynchronousQueue</li>
+<li>PriorityBlockingQueue</li>
+</ul>
+<p><br><br><br></p>
+<p><code>线程池大小大于corePoolSize后是先放workQueue还是先扩大线程池大小到maximumPoolSize？</code></p>
+
+</article></section></slide>
+<slide class="slide"><section class="slide-wrapper"><article class="moveIn">
+
+<h2>RejectedExecutionHandler handler</h2>
+<blockquote>
+<p>线程池的拒绝策略。</p>
+<p>所谓拒绝策略，是当向线程池中提交任务时，如果此时线程池中的线程已经饱和了，而且阻塞队列也已经满了，则线程池会选择一种拒绝策略来处理该任务。</p>
+</blockquote>
+<p><br></p>
+<ul class="fadeIn">
+<li>AbortPolicy：直接抛出异常，默认策略 </li>
+<li>CallerRunsPolicy：用调用者所在的线程来执行任务；</li>
+<li>DiscardOldestPolicy：丢弃阻塞队列中靠最前的任务，并执行当前任务；</li>
+<li>DiscardPolicy：直接丢弃任务；</li>
+<li>自定义实现</li>
+</ul>
+
+</article></section></slide>
+<slide class="slide"><section class="slide-wrapper"><article class="moveIn">
+
+<h2>allowCoreThreadTimeOut</h2>
+<h2>prestartAllCoreThreads()</h2>
+<h2>shutdown()</h2>
+<h2>shutdownNow()</h2>
+
+</article></section></slide>
+<slide class="slide"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>Executors</h1>
+
+</article></section></slide>
+<slide class="slide"><section class="slide-wrapper"><article class="moveIn">
+
+<h3>newFixedThreadPool</h3>
+<pre><code class="java">new ThreadPoolExecutor(nThreads, nThreads,0L, TimeUnit.MILLISECONDS
+                                        ,new LinkedBlockingQueue&lt;Runnable&gt;())
+</code></pre>
+<blockquote>
+<p>固定大小线程池,无限队列。</p>
+</blockquote>
+<p><br></p>
+<h3>newSingleThreadExecutor</h3>
+<pre><code class="java">new ThreadPoolExecutor(1, 1,0L, TimeUnit.MILLISECONDS
+                                        ,new LinkedBlockingQueue&lt;Runnable&gt;())
+</code></pre>
+<blockquote>
+<p>一个线程（的线程池）,无限队列。</p>
+</blockquote>
+<p><br/></p>
+<h2>newCachedThreadPool</h2>
+<pre><code class="java">new ThreadPoolExecutor(0, Integer.MAX_VALUE,60L, TimeUnit.SECONDS
+                                        ,new SynchronousQueue&lt;Runnable&gt;())
+</code></pre>
+<blockquote>
+<p>缓存的线程池，有多少任务就创建多少线程。线程闲置一分钟自动回收。</p>
+</blockquote>
+
+</article></section></slide>
+<slide class="slide"><section class="slide-wrapper"><article class="flexbox vleft moveIn">
+<h1>线程池大小配置</h1>
+<ul>
+<li>CPU密集型</li>
+<li>IO密集型</li>
+</ul>
+<p><br/><br/></p>
+<blockquote>
+<p>CPU密集型线程数量 = CPU数量 + 冗余量</p>
+</blockquote>
+<p><br/></p>
+<blockquote>
+<p>IO密集型线程数量 = 正常状态下每秒的请求峰值 * 99%的响应均值(秒) + 冗余量(20%~40%)</p>
+</blockquote>
+
+</article></section></slide>
+<slide class="slide"><section class="slide-wrapper"><article class="flexbox vleft moveIn">
+<h1>线程池的应用</h1>
+<ul class="moveIn">
+<li>复杂业务场景(我的课堂、我的直播)</li>
+<li>异步更新缓存</li>
+<li>本地生产消费者模式</li>
+</ul>
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>我的课堂业务</h1>
+<pre><code class="java">/**
+ * 我的课堂业务接口
+ */
+public interface MyCourseService {
+    /**
+     * 查过某个用户所有的课程数据
+     */
+    Collection&lt;UserCourseVo&gt; findAllUserCourseByUserId(int userId);
+}
+/**
+ * 用户购课数据
+ */
+@Data
+public class UserProduct {
+
+    private int productId;
+
+    private int userId;
+
+    private int productLine;
+}
+/**
+ * 我的课堂展示数据对象
+ */
+public class UserCourseVo {
+}
+</code></pre>
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>处理课程的公共组件</h1>
+<pre><code class="java">public class MyCourseComponent {
+
+    public Collection&lt;UserProduct&gt; findAllUserProductByUserId(int userId) {
+        // 省略逻辑代码
+        return Lists.newArrayList();
+    }
+    /**
+     * 处理考研产品
+     */
+    public Collection&lt;UserCourseVo&gt; disposeKaoYanUserProduct(
+                            Collection&lt;UserProduct&gt; userProducts) {
+        // 省略逻辑代码
+        return Lists.newArrayList();
+    }
+    /**
+     * 处理出国产品
+     */
+    public Collection&lt;UserCourseVo&gt; disposeChuGuoUserProduct(
+                            Collection&lt;UserProduct&gt; userProducts) {
+        // 省略逻辑代码
+        return Lists.newArrayList();
+    }
+
+    /**
+     * 处理通用产品线产品
+     */
+    public Collection&lt;UserCourseVo&gt; disposeTongyongUserProduct(
+                            Collection&lt;UserProduct&gt; userProducts) {
+        // 省略逻辑代码
+        return Lists.newArrayList();
+    }
+
+    /**
+     * 处理k12产品
+     */
+    public Collection&lt;UserCourseVo&gt; disposeK12UserProduct(
+                            Collection&lt;UserProduct&gt; userProducts) {
+        // 省略逻辑代码
+        return Lists.newArrayList();
+    }
+
+    /**
+     * 处理老课堂
+     */
+    public Collection&lt;UserCourseVo&gt; disposeOldCourseUserProduct(
+                            Collection&lt;UserProduct&gt; userProducts) {
+        // 省略逻辑代码
+        return Lists.newArrayList();
+    }
+
+    public static Collection&lt;UserProduct&gt; filter(Collection&lt;UserProduct&gt; userProducts, final int productLine) {
+        return Collections2.filter(userProducts, new Predicate&lt;UserProduct&gt;() {
+
+            @Override
+            public boolean apply(UserProduct input) {
+                return input.getProductLine() == productLine;
+            }
+        });
+    }
+}
+</code></pre>
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>业务接口实现</h1>
+<pre><code class="java">public class MyCourseServiceImpl implements MyCourseService {
+
+    private MyCourseComponent c = new MyCourseComponent();
+
+    @Override
+    public Collection&lt;UserCourseVo&gt; findAllUserCourseByUserId(int userId) {
+        Collection&lt;UserProduct&gt; userProducts = c
+                                            .findAllUserProductByUserId(userId);
+
+        Collection&lt;UserCourseVo&gt; result = Lists.newArrayList();
+
+        result.addAll(c.disposeKaoYanUserProduct(filter(userProducts, 1)));
+
+        result.addAll(c.disposeChuGuoUserProduct(filter(userProducts, 2)));
+
+        result.addAll(c.disposeTongyongUserProduct(filter(userProducts, 3)));
+
+        result.addAll(c.disposeK12UserProduct(filter(userProducts, 4)));
+
+        result.addAll(c.disposeOldCourseUserProduct(filter(userProducts, 5)));
+
+        return result;
+    }
+}
+</code></pre>
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>业务接口多线程实现</h1>
+<pre><code class="java">public Collection&lt;UserCourseVo&gt; findAllUserCourseByUserId(int userId) {
+    Collection&lt;UserProduct&gt; userProducts = c.findAllUserProductByUserId(userId);
+    Collection&lt;UserCourseVo&gt; result = Lists.newArrayList();
+    List&lt;Future&lt;Collection&lt;UserCourseVo&gt;&gt;&gt; futures = Lists.newArrayList();
+
+    futures.add(threadPoolExecutor
+            .submit(() -&gt; c.disposeKaoYanUserProduct(filter(userProducts, 1))));
+
+    futures.add(threadPoolExecutor
+            .submit(() -&gt; c.disposeChuGuoUserProduct(filter(userProducts, 2))));
+
+    futures.add(threadPoolExecutor
+            .submit(() -&gt; c.disposeTongyongUserProduct(filter(userProducts, 3))));
+
+    futures.add(threadPoolExecutor
+            .submit(() -&gt; c.disposeK12UserProduct(filter(userProducts, 4))));
+
+    futures.add(threadPoolExecutor
+            .submit(() -&gt; c.disposeOldCourseUserProduct(filter(userProducts, 5))));
+
+    for (Future&lt;Collection&lt;UserCourseVo&gt;&gt; collectionFuture : futures) {
+        try {
+            result.addAll(collectionFuture.get());
+        }
+        catch (Exception e) {
+            logger.error(&quot;处理数据发生异常&quot;, e);
+        }
+    }
+    return result;
+}
+</code></pre>
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>优化后的业务接口多线程实现</h1>
+<pre><code class="java">public Collection&lt;UserCourseVo&gt; findAllUserCourseByUserId(int userId) {
+    Collection&lt;UserProduct&gt; userProducts = c.findAllUserProductByUserId(userId);
+    Collection&lt;UserCourseVo&gt; result = Lists.newArrayList();
+    List&lt;Future&lt;Collection&lt;UserCourseVo&gt;&gt;&gt; futures = Lists.newArrayList();
+
+    futures.add(threadPoolExecutor
+            .submit(() -&gt; c.disposeKaoYanUserProduct(filter(userProducts, 1))));
+
+    futures.add(threadPoolExecutor
+            .submit(() -&gt; c.disposeChuGuoUserProduct(filter(userProducts, 2))));
+
+    futures.add(threadPoolExecutor
+            .submit(() -&gt; c.disposeTongyongUserProduct(filter(userProducts, 3))));
+
+    futures.add(threadPoolExecutor
+            .submit(() -&gt; c.disposeK12UserProduct(filter(userProducts, 4))));
+
+    // 在当前用户线程执行逻辑
+    Collection&lt;UserCourseVo&gt; oldUserCourseVos = c
+            .disposeOldCourseUserProduct(filter(userProducts, 5));
+    result.addAll(oldUserCourseVos);
+
+    // 获取异步线程执行结果
+    for (Future&lt;Collection&lt;UserCourseVo&gt;&gt; collectionFuture : futures) {
+        try {
+            result.addAll(collectionFuture.get());
+        }
+        catch (Exception e) {
+            logger.error(&quot;处理数据发生异常&quot;, e);
+        }
+    }
+    return result;
+}
+</code></pre>
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>线程池配置</h1>
+<pre><code class="java">new ThreadPoolExecutor(corePoolSize, maxPoolSize, 300, TimeUnit.SECONDS,
+        new SynchronousQueue&lt;&gt;(),MyThreadFactory.create(&quot;async-run-business-&quot;),
+        new ThreadPoolExecutor.CallerRunsPolicy());
+</code></pre>
+
+</article></section></slide>
+<slide class="slide"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>异步更新缓存</h1>
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>线程池配置</h1>
+<pre><code class="java">new ThreadPoolExecutor(20, 50, 300, TimeUnit.SECONDS,
+        new LinkedBlockingQueue&lt;Runnable&gt;(50),MyThreadFactory.create(&quot;async-update-cache-&quot;),
+        new ThreadPoolExecutor.DiscardPolicy());
+</code></pre>
+
+</article></section></slide>
+<slide class="slide"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>本地生产消费者模式</h1>
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>业务代码</h1>
+<pre><code class="java">public class ProductersAndConsumerDemo {
+    private static Logger logger = LoggerFactory.getLogger(ProductersAndConsumerDemo.class)
+    /**批量查询时的单次数量*/
+    private static final int SEARCH_BATH_COUNT = 50;
+
+    private Queue&lt;ProductValue&gt; queue;
+    private ThreadPoolExecutor productersThreadPoolTaskExecutor;
+    private ThreadPoolExecutor consumersThreadPoolTaskExecutor;
+    @Setter
+    @Getter
+    private volatile boolean productComplete;
+
+    public ProductersAndConsumerDemo() {
+        queue = Queues.newLinkedBlockingQueue();
+        productersThreadPoolTaskExecutor = createThreadPoolExecutor(&quot;producter-&quot;, 30, 30);
+        consumersThreadPoolTaskExecutor = createThreadPoolExecutor(&quot;consumer-&quot;, 11, 11);
+    }
+
+    public void run() {
+        // 启动消费者
+        startConsumer();
+        // 开始生产数据
+        productData();
+        // 关闭生产者线程池
+        shutdownThreadPoolTaskExecutor(productersThreadPoolTaskExecutor);
+        setProductComplete(true);
+        // 关闭消费者线程池
+        shutdownThreadPoolTaskExecutor(consumersThreadPoolTaskExecutor);
+    }
+
+    private void shutdownThreadPoolTaskExecutor(ThreadPoolExecutor threadPoolTaskExecutor) {
+        threadPoolTaskExecutor.shutdown();
+        try {
+            while (!threadPoolTaskExecutor.awaitTermination(1, TimeUnit.SECONDS)) {}
+        }
+        catch (InterruptedException e) {
+            logger.error(e.getMessage(), e);
+        }
+    }
+
+    private void productData() {
+        logger.info(&quot;从业务系统生产数据&quot;);
+        List&lt;Future&lt;List&lt;ProductValue&gt;&gt;&gt; futures = Lists.newArrayList();
+        while (true) {
+            // 模拟从业务系统分页查询数据
+            Collection&lt;Product&gt; objects = findValue();
+            addSearchLiveProductToQueueFromFuture(futures);
+            if (CollectionUtils.isNotEmpty(objects)) {
+                break;
+            }
+            for (final Product product : objects) {
+                Future&lt;List&lt;ProductValue&gt;&gt; future = productersThreadPoolTaskExecutor
+                        .submit(() -&gt; findProductValueByProduct(product));
+                futures.add(future);
+            }
+        }
+        logger.info(&quot;从业务系统生产数据完毕&quot;);
+    }
+
+    private List&lt;ProductValue&gt; findProductValueByProduct(Product product) {
+        // 将Product转换为多个ProductValue
+        return Lists.newArrayList();
+    }
+
+    private Collection&lt;Product&gt; findValue() {
+        // 模拟从业务系统分页查询数据
+        return Lists.newArrayList();
+    }
+
+    private void addSearchLiveProductToQueueFromFuture(List&lt;Future&lt;List&lt;ProductValue&gt;&gt;&gt; futures) {
+        if (CollectionUtils.isNotEmpty(futures)) {
+            for (Future&lt;List&lt;ProductValue&gt;&gt; future : futures) {
+                try {
+                    List&lt;ProductValue&gt; productValues = future.get();
+                    if (CollectionUtils.isNotEmpty(productValues)) {
+                        queue.addAll(productValues);
+                    }
+                }
+                catch (Exception e) {
+                    logger.error(e.getMessage(), e);
+                }
+            }
+            futures.clear();
+        }
+    }
+
+    private void startConsumer() {
+        final Map&lt;String, String&gt; existingDataIdAndSignatureMap = findExistingDataIdAndSignature();
+        final Set&lt;String&gt; insertDataIds = Sets.newConcurrentHashSet();
+        final CountDownLatch countDownLatch = new CountDownLatch(consumersThreadPoolTaskExecutor.getCorePoolSize() - 1);
+        consumersThreadPoolTaskExecutor.submit(() -&gt; {
+            try {
+                logger.info(&quot;clean线程启动,开始等待consumer结束&quot;);
+                countDownLatch.await();
+                logger.info(&quot;consumer线程全部结束,开始执行清理任务&quot;);
+                // .... 利用已存在的数据和新插入的数据清理垃圾数据
+                logger.info(&quot;clean线程退出&quot;);
+            }
+            catch (Throwable e) {
+                logger.error(e.getMessage(), e);
+            }
+        });
+        for (int i = 0; i &lt; consumersThreadPoolTaskExecutor.getCorePoolSize() - 1; i++) {
+            consumersThreadPoolTaskExecutor.submit(() -&gt; {
+                logger.info(&quot;consumer线程启动[{}]&quot;, Thread.currentThread().getName());
+                try {
+                    insertDataIds.addAll(consumerData(existingDataIdAndSignatureMap));
+                }
+                catch (Throwable e) {
+                    logger.error(e.getMessage(), e);
+                }
+                finally {
+                    countDownLatch.countDown();
+                    logger.info(&quot;consumer线程退出[{}]&quot;, Thread.currentThread().getName());
+                }
+            });
+        }
+    }
+
+    /**
+     * 循环消费数据
+     *
+     * @param existingDataIdAndSignatureMap 已经存在的数据id和数据签名
+     */
+    private Set&lt;String&gt; consumerData(Map&lt;String, String&gt; existingDataIdAndSignatureMap) {
+        Set&lt;String&gt; insertDataIds = Sets.newHashSet();
+        while (!isProductComplete() || !queue.isEmpty()) {
+            ProductValue productValue = queue.poll();
+            if (productValue != null) {
+                String id = productValue.getId();
+                try {
+                    if (!ObjectUtils.equals(productValue.getSignature(), existingDataIdAndSignatureMap.get(id))) {
+                        // 将数据插入到数据源中
+                    }
+                }
+                catch (Throwable e) {
+                    logger.error(e.getMessage(), e);
+                }
+                finally {
+                    insertDataIds.add(id);
+                }
+            } else {
+                try {
+                    Thread.sleep(100);
+                }
+                catch (InterruptedException e) {}
+            }
+        }
+        return insertDataIds;
+    }
+
+    /**
+     * 从数据源中查询已存在的所有数据id和数据签名。
+     *
+     * @return
+     */
+    private Map&lt;String, String&gt; findExistingDataIdAndSignature() {
+        Map&lt;String, String&gt; result = Maps.newHashMap();
+        // 从数据源中查询出的数量，这里省略查询过程
+        long totalCount = 1000;
+        List&lt;Future&lt;Map&lt;String, String&gt;&gt;&gt; futures = Lists.newArrayList();
+        for (long i = 0; i &lt;= totalCount / SEARCH_BATH_COUNT; i++) {
+            Future&lt;Map&lt;String, String&gt;&gt; future = consumersThreadPoolTaskExecutor.submit(() -&gt; {
+                // 省略查询逻辑
+                return Maps.newHashMap();
+            });
+            futures.add(future);
+        }
+        for (Future&lt;Map&lt;String, String&gt;&gt; future : futures) {
+            try {
+                result.putAll(future.get());
+            }
+            catch (Exception e) {
+                logger.error(&quot;查询已经存在的数据失败&quot;, e);
+            }
+        }
+        return result;
+    }
+}
+</code></pre>
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>线程池配置</h1>
+<pre><code class="java">new ThreadPoolExecutor(corePoolSize, maxPoolSize, 300,TimeUnit.SECONDS,
+        new SynchronousQueue&lt;&gt;(),MyThreadFactory.create(&quot;async-run-business-&quot;),
+        new ThreadPoolExecutor.CallerRunsPolicy());
+</code></pre>
+
+</article></section></slide>
+<slide class="slide"><section class="slide-wrapper"><article class="moveIn">
+<h1>线上应用卡死的排查之路</h1>
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article>
+<h2>依然是刚才的本地生产消费者模式代码</h2>
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article>
+<img src="http://qiniu-markdown-images.warningrc.com/4943d3441b70b535dac8818e1382cc63.png" alt="">
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>看个例子</h1>
+<pre><code class="java">public class ThreadPoolExecutorTest {
+    public static void main(String[] args) {
+        int threads = 7;
+        long time = 0;
+        for (;;) {
+            ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS,
+                    new LinkedBlockingQueue&lt;&gt;());
+            List&lt;Future&gt; futures = Lists.newArrayListWithCapacity(threads);
+            for (int i = 0; i &lt; threads; i++) {
+                Future future = threadPoolExecutor.submit(() -&gt; {
+                    //
+                });
+                futures.add(future);
+            }
+            for (Future future : futures) {
+                try {
+                    future.get();
+                }
+                catch (Exception e) {}
+            }
+            if (threadPoolExecutor.getActiveCount() &gt; 0) {
+                System.out.println(threadPoolExecutor.getActiveCount() + &quot;======&quot; + time);
+            }
+            threadPoolExecutor.shutdown();
+            time++;
+        }
+    }
+}
+</code></pre>
+
+</article></section></slide>
+<slide class="slide" data-transition="horizontal3d"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>再看个例子</h1>
+<pre><code class="java">public class ThreadPoolExecutorTest1 {
+
+    public static void main(String[] args) {
+        int threads = 20;
+        final Thread mainThread = Thread.currentThread();
+        ThreadPoolExecutor threadPoolExecutor =
+            new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS,
+                new SynchronousQueue&lt;&gt;(), new ThreadPoolExecutor.CallerRunsPolicy());
+        Future[] futures = new Future[threads];
+        for (;;) {
+            for (int i = 0; i &lt; threads; i++) {
+                futures[i] = threadPoolExecutor.submit(() -&gt; {
+                    if (Thread.currentThread() == mainThread) {
+                        System.exit(10);
+                    }
+                });
+            }
+            for (Future future : futures) {
+                try {
+                    future.get();
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}
+</code></pre>
+
+</article></section></slide>
+<slide class="slide"><section class="slide-wrapper"><article class="flexbox vcenter">
+<h1>谢谢。。。</h1>
+
+</article></section></slide>
+        
+
+        <!-- <slide class="slide logoslide dark nobackground">
+            <article class="flexbox vcenter">
+                <h2 style="color: white;">Powered By nodeppt v1.4.5</h2>
+            </article>
+        </slide> -->
+        <div class="slideTip" id="tip"></div>
+    </slides>
+</div>
+<canvas id="drawBoard" class="draw-board" width="900" height="700"></canvas>
+<div class="progress"><span id="progress"></span></div>
+<div id="_buttons">
+    <div class="_btn-box" id="_btn-box" style="display:none;">
+        <button class="fa fa-arrow-circle-left" id="_btn-prev"></button>
+        <button class="fa fa-arrow-circle-right" id="_btn-next"></button>
+        <button class="fa fa-paint-brush" id="_btn-brush"></button>
+        <button class="fa fa-compress" id="_btn-overview" data-toggle="fa fa-expand"></button>
+    </div>
+    <button class="fa fa-bars" id="_btn-bar"  data-toggle="fa fa-close"></button>
+</div>
+<script src="./js/mixjs/lib/mix.0.3.0.min.js"></script>
+<script>
+    var ASSET_RELATIVE_DIR = ".";
+</script>
+<script>
+var base = location.protocol + '//' + location.host;
+
+var path = (location.pathname + '#').split('/').filter(function(v){
+    return !!v;
+});
+path.pop();
+path = path.join('/');
+if (typeof ASSET_RELATIVE_DIR === 'string') {
+    path = path + '/' + ASSET_RELATIVE_DIR;
+}
+MixJS.config({
+    baseURL: [ base, path, 'js'].join('/')+'/'
+});
+
+</script>
+<script src="./js/mixjs/lib/event/broadcast.js"></script>
+<script src="./js/nodeppt.js"></script>
+<script>
+Slide.init({
+    containerID: 'container',
+    drawBoardID: 'drawBoard',
+    slideClass: '.slide',
+    buildClass: '.build',
+    progressID: 'progress',
+    transition: 'zoomin',
+    width: 1100,
+    dir: './',
+    
+    //打开下面的注释就开启postMessage方式
+    //访问网址127.0.0.1:8080/ppt/demo#client
+    control:{
+        type: 'postMessage',
+        args:{
+            isControl:  false
+        }
+    },
+    
+    tipID: 'tip'
+});
+MixJS.loadJS('highlight/highlight.pack.js',function(){
+    hljs.tabReplace = '  ';
+    hljs.initHighlightingOnLoad();
+});
+</script>
+<script src="./js/ga.js"></script>
+
+<!-- MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+  config: ["TeX-AMS-MML_HTMLorMML.js"],
+  tex2jax: {inlineMath: [['\\(','\\)']]}});
+  //['$','$'], 避免货币价格冲突
+</script>
+<script type="text/javascript" src="./js/mathjax/MathJax.js"></script>
+
+<!--placeholder-->
+</body>
+</html>

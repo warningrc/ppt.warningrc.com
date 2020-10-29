@@ -1,88 +1,95 @@
 title: git入门
-speaker: speaker
-transition: cards
+speaker: Warning
+transition: slide
 files: /js/ga.js
 
-[slide style="background-image:url('/img/bg1.png')"]
+<slide class="bg-black-blue aligncenter" image="/img/bg1.png">
+
 
 # Git入门
 <small>by 王宁</small>
 
 
+<slide class="bg-black-blue aligncenter" image="/img/bg1.png">
 
-[slide style="background-image:url('/img/bg1.png')"  data-transition="slide"]
 
-* **关于版本控制** {:&.bounceIn}
+* **关于版本控制** {.bounceIn}
 * **Git介绍**
 * **Git安装**
 * **Git命令**
 * **鲨鱼项目Git实践**
+{.text.build}
 
-[slide style="background-image:url('/img/bg1.png')"  data-transition="slide2"]
+<slide class="bg-black-blue aligncenter" image="/img/bg1.png">
 
 ## 关于版本控制
 ----
- {:&.rollIn}
 
->版本控制是一种记录一个或若干文件内容变化，以便将来查阅特定版本修订情况的系统。
+
+>版本控制是一种记录一个或若干文件内容变化，以便将来查阅特定版本修订情况的系统。 {.rollIn}
+{.text.build}
+
+<slide class="bg-black-blue aligncenter" image="/img/bg1.png">
+
+# 版本控制系统分为三种： {.fadeInLeft}
 
 <br>
 
-版本控制系统分为三种： {:.flexbox.vleft}
-
-<br>
-
-* 本地版本控制系统  {:&.flexbox.vleft.rollIn}
+* 本地版本控制系统  {.bounceIn}
 * 集中化的版本控制系统
 * 分布式版本控制系统
 
-[slide style="background-image:url('/img/bg1.png')"  data-transition="slide3"]
-[magic data-transition="cover-circle"]
-### 本地版本控制系统 {:&.flexbox.vleft}
+{.text.build}
+
+<slide class="bg-black-blue aligncenter" image="/img/bg1.png">
+
+
+### 本地版本控制系统 {.fadeInLeft}
 ----
-<br>
 
 >大多都是采用某种简单的数据库或者使用整个文件夹拷贝来记录文件的历次更新差异
+{.text.build}
 
-====
+
+
 ![](/git-primer/18333fig0101-tn.png)
+{.text.build}
 
-[/magic]
 
-[slide style="background-image:url('/img/bg1.png')"  data-transition="newspaper"]
-[magic data-transition="cover-circle"]
-### 集中化的版本控制系统(CVS，Subversion 以及 Perforce) {:&.flexbox.vleft}
+<slide class="bg-black-blue aligncenter" image="/img/bg1.png">
+
+### 集中化的版本控制系统(CVS，Subversion 以及 Perforce) {.fadeInLeft}
 ----
-<br>
 
 >集中化的版本控制系统诸如CVS,Subversion以及Perforce等.
+{.text.build}
 
-----
 >都有一个单一的集中管理的服务器.保存所有文件的修订版本.而协同工作的人们都通过客户端连到这台服务器.取出最新的文件或者提交更新。
+ {.text.build}
 
-====
+
 ![](/git-primer/18333fig0102-tn.png)
+{.text.build}
 
-[/magic]
 
-[slide style="background-image:url('/img/bg1.png')"  data-transition="glue"]
-[magic data-transition="cover-circle"]
-### 分布式版本控制系统(Git ) {:&.flexbox.vleft}
+<slide class="bg-black-blue aligncenter" image="/img/bg1.png">
+
+### 分布式版本控制系统(Git) {:&.flexbox.vleft}
 ----
 <br>
 
 >分布式版本控制系统诸如Git等.
+ {.text.build}
 
 ----
 >客户端并不只提取最新版本的文件快照,而是把代码仓库完整地镜像下来.这么一来,任何一处协同工作用的服务器发生故障,事后都可以用任何一个镜像出来的本地仓库恢复,因为每一次的提取操作,实际上都是一次对代码仓库的完整备份
+ {.text.build}
 
-====
 ![](/git-primer/18333fig0103-tn.png)
+ {.text.build}
 
-[/magic]
+<slide class="bg-black-blue aligncenter" image="/img/bg1.png">
 
-
-[slide style="background-image:url('/img/bg1.png')"  data-transition="vkontext"]  {:.flexbox.vleft}
 
 ## Git简介
 

@@ -1,8 +1,8 @@
 #!/bin/bash
-rm -rf ./publish
+rm -rf ./dist
 
-nodeppt release
+nodeppt build limiter.md
 
-rm -rf ./publish/.git
+rm -rf ./dist/.git
 
-rsync -artvz --delete ./publish/ aliyun:/data/webroot/ppt/
+rsync -artvz --delete ./dist/ aliyun:/data/webroot/ppt/
